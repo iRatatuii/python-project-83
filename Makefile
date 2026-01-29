@@ -9,8 +9,8 @@ dev:
 start:
 	uv run gunicorn -w 5 -b 0.0.0.0:$(PORT) page_analyzer:app
 
-ruff-check:
-	uv run ruff check
+lint:
+	uv run ruff check . --fix
 
 build:
     ./build.sh

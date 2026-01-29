@@ -1,7 +1,7 @@
 import os
-from flask import Flask, render_template
-from dotenv import load_dotenv
 
+from dotenv import load_dotenv
+from flask import Flask, render_template
 
 app = Flask(__name__)
 load_dotenv()
