@@ -26,7 +26,7 @@ jobs:
         run: uv sync
 
       - name: Run linter
-        run: ruff check .
+        run: make lint
 
       # - name: Run tests
       #   run: pytest
