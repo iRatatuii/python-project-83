@@ -1,0 +1,37 @@
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title> Error 500</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- favicon -->
+    <link rel="shortcut icon" href="{{ url_for('static', filename='/img/favicon.ico')}}">
+
+    <!-- Style css -->
+    <link href="{{ url_for('static', filename='css/style.css')}}" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+
+<section class="flex items-center h-full bg-gradient-to-bl from-cyan-50 to-cyan-100">
+        <div class="container">
+            <div class="text-center max-w-md mx-auto">
+
+                <h1 class="flex items-center justify-center font-bold text-cyan-600 sm:text-[180px] text-9xl mb-5">5 
+                    <img src="{{ url_for('static', filename='/img/error.png')}}" alt="error" class="h-36 mx-1"> 0
+                </h1>
+                <h3 class="text-cyan-600 text-xl font-semibold uppercase">Internal Server Error</h3>
+                <div class="border border-black/60 mx-auto my-3"></div>
+                <h4 class="text-gray-500 font-medium mb-1">500 Error: Our servers are having a day off. Rest assured, our tech team is on the case. Please check back shortly.</h4>
+                <div class="mt-10">
+                    <a href="/" class="bg-cyan-600 text-white font-medium text-sm uppercase rounded px-7 py-3">Wait a Moment</a>
+                </div>
+                
+            </div>
+        </div>
+    </section>
+
+</body>
+
+</html>
