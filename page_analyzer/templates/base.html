@@ -47,11 +47,13 @@
 			</div>
 			{% endfor %}
 		</div>
-		{% endif %} {% endwith %} 
-
-        {% block content %} {% endblock %}
-		
-        <footer class="border-top py-3 mt-5 flex-shrink-0">
+		{% endif %} {% endwith %}
+		<main class="flex-grow-1">
+			<div class="container-lg mt-3">
+				{% block content %} {% endblock %}
+			</div>
+		</main>
+		<footer class="border-top py-3 mt-5 flex-shrink-0">
 			<div class="container-lg">
 				<div class="text-center">
 					<a href="https://ru.hexlet.io/" target="_blank">Hexlet</a>

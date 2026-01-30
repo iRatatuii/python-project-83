@@ -12,6 +12,8 @@ start:
 lint:
 	uv run ruff check .
 
+lint-fix:
+	uv run ruff check . --fix
 build:
 	./build.sh
 
