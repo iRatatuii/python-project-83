@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 import psycopg2
 import requests
 import validators
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from flask import Flask, abort, flash, redirect, render_template, request, url_for
 
@@ -172,6 +173,7 @@ def urls_post():
                 new_id = cur.fetchone()[0]
                 conn.commit()
 
+
                 flash("Страница успешно добавлена", "success")
                 return redirect(url_for("show_url", id=new_id))
 
@@ -189,16 +191,33 @@ def analyze_url(url):
     try:
         resp = requests.get(url)
         resp.raise_for_status()
-        
+
+        data = resp.text
+        soup = BeautifulSoup(data)
+        description = ''
+        title = ''
+        h1 = ''
+        h1_tag = soup.h1
+        if h1_tag:
+            h1 = h1_tag.string
+
+        title_tag = soup.title
+        if title_tag:
+            title = title_tag.string
+
+        description_tag = soup.find("meta", attrs={"name": "description"})
+        if description_tag:
+            description = description_tag['content']
+
         return {
             "status_code": resp.status_code,
-            'h1':'',
-            'title': '',
-            'description': ''
-            }
-        
-    except exception as e:
-        print(f"HTTP error occurred: {e}")
+            "h1": h1,
+            "title": title,
+            "description": description,
+        }
+
+    except exception:
+        flash("Произошла ошибка при проверке", 'danger')
 
 
 @app.post("/urls/<id>/checks")
@@ -210,12 +229,17 @@ def check_url(id):
                 url = cur.fetchone()
                 data = analyze_url(url[0])
                 status_code = data["status_code"]
+                h1 = data["h1"]
+                title = data["title"]
+                description = data["description"]
+
                 cur.execute(
                     """
-                    INSERT INTO url_checks (url_id, status_code) 
-                    VALUES (%s, %s)""",
-                    (id, status_code),
+                    INSERT INTO url_checks (url_id, status_code, h1, title, description) 
+                    VALUES (%s, %s, %s, %s, %s)""",
+                    (id, status_code, h1, title, description),
                 )
+                
                 return redirect(url_for("show_url", id=id))
     except psycopg2.Error as e:
         flash(f"Ошибка базы данных: {e}", "danger")
