@@ -1,5 +1,4 @@
 import os
-from logging import exception
 from urllib.parse import urlparse
 
 import psycopg2
