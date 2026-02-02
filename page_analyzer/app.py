@@ -6,7 +6,15 @@ import requests
 import validators
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
-from flask import Flask, abort, flash, redirect, render_template, request, url_for
+from flask import (
+    Flask,
+    abort,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 
 load_dotenv()
 
@@ -154,7 +162,7 @@ def urls_post():
     if not validators.url(url):
         flash("Некорректный URL", "danger")
         return render_template("index.html"), 422
-    
+
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
@@ -225,7 +233,8 @@ def check_url(id):
 
                 cur.execute(
                     """
-                    INSERT INTO url_checks (url_id, status_code, h1, title, description)
+                    INSERT INTO url_checks 
+                    (url_id, status_code, h1, title, description)
                     VALUES (%s, %s, %s, %s, %s)
                     """,
                     (
