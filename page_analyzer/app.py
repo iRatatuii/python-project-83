@@ -142,19 +142,19 @@ def urls_post():
     data = request.form.get("url", "").strip()
     if not data:
         flash("URL не может быть пустым", "danger")
-        return render_template("index.html")
+        return render_template("index.html"), 422
 
     normalize_url = urlparse(data)
     url = f"{normalize_url.scheme}://{normalize_url.hostname}"
 
     if len(url) > 255:
         flash("URL не может быть длиннее 255 символов", "danger")
-        return render_template("index.html")
+        return render_template("index.html"), 422
 
     if not validators.url(url):
         flash("Некорректный URL", "danger")
-        return render_template("index.html")
-
+        return render_template("index.html"), 422
+    
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
