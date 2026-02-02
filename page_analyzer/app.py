@@ -1,5 +1,4 @@
 import os
-from datetime import datetime
 from urllib.parse import urlparse
 
 import psycopg2
@@ -34,9 +33,10 @@ def init_database():
 
     except FileNotFoundError:
         print("Файл database.sql не найден, пропускаем инициализацию")
-        
+
     except psycopg2.Error as e:
         print(f"Ошибка подключения к базе данных: {e}")
+
 
 init_database()
 
@@ -51,13 +51,44 @@ def urls_get():
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT * FROM urls ORDER BY id DESC")
-                urls = cur.fetchall()
-                print(urls)
+                cur.execute(
+                    """
+                        SELECT 
+                        urls.id, 
+                        urls.name,
+                        urls.created_at,
+                        MAX(url_checks.created_at) as last_check_date,
+                        (
+                            SELECT status_code 
+                            FROM url_checks
+                            WHERE url_id = urls.id
+                            ORDER BY created_at DESC
+                            LIMIT 1
+                        ) as last_status_code
+                        FROM urls 
+                        LEFT JOIN url_checks 
+                        ON urls.id = url_checks.url_id
+                        GROUP BY urls.id, urls.name, urls.created_at
+                        ORDER BY id DESC
+                    """
+                )
+                urls = []
+                for row in cur.fetchall():
+                    urls.append(
+                        {
+                            "id": row[0],
+                            "name": row[1],
+                            "created_at": row[2],
+                            "last_check_date": row[3],
+                            "last_check_status": row[4],
+                        }
+                    )
+                    print(urls)
                 return render_template("urls.html", urls=urls)
     except psycopg2.Error as e:
         flash(f"Ошибка базы данных: {e}", "danger")
         return render_template("urls.html", urls=[])
+
 
 @app.get("/urls/<id>")
 def show_url(id):
@@ -66,11 +97,40 @@ def show_url(id):
             with conn.cursor() as cur:
                 cur.execute("SELECT * FROM urls WHERE id=%s", (id,))
                 url = cur.fetchone()
-
                 if url is None:
                     abort(404)
+                url = {"id": url[0], "name": url[1], "created_at": url[2]}
 
-                return render_template("url.html", id=url[0], name=url[1], date=url[2])
+                cur.execute(
+                    """
+                    SELECT 
+                    id,
+                    status_code,
+                    h1,
+                    title,
+                    description,
+                    created_at 
+                    FROM url_checks 
+                    WHERE url_id = %s 
+                    ORDER BY id DESC
+                """,
+                    (id,),
+                )
+
+                checks = []
+                for row in cur.fetchall():
+                    checks.append(
+                        {
+                            "id": row[0],
+                            "status_code": row[1],
+                            "h1": row[2],
+                            "title": row[3],
+                            "description": row[4],
+                            "created_at": row[5],
+                        }
+                    )
+
+                return render_template("url.html", url=url, checks=checks)
     except psycopg2.Error as e:
         flash(f"Ошибка базы данных: {e}", "danger")
         abort(500)
@@ -105,8 +165,8 @@ def urls_post():
                     return redirect(url_for("show_url", id=existing_url[0]))
 
                 cur.execute(
-                    "INSERT INTO urls (name, created_at) VALUES (%s, %s) RETURNING id",
-                    (url, datetime.now()),
+                    "INSERT INTO urls (name) VALUES (%s) RETURNING id",
+                    (url,),
                 )
                 new_id = cur.fetchone()[0]
                 conn.commit()
@@ -125,12 +185,27 @@ def urls_post():
 
 @app.post("/urls/<id>/checks")
 def check_url(id):
-    flash("Проверка URL еще не реализована", "warning")
-    return redirect(url_for("show_url", id=id))
+
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                # url = cur.execute("SELECT name FROM urls WHERE id = %s", (id,))
+                # data = analyze_url(url)
+                cur.execute("""INSERT INTO url_checks (url_id) VALUES (%s)""", (id,))
+                return redirect(url_for("show_url", id=id))
+    except psycopg2.Error as e:
+        flash(f"Ошибка базы данных: {e}", "danger")
+        abort(500)
+
+
+def analyze_url(url):
+    pass
+
 
 @app.errorhandler(404)
 def not_found(error):
     return render_template("404.html"), 404
+
 
 @app.errorhandler(500)
 def internal_error(error):
