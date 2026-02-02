@@ -14,6 +14,7 @@ lint:
 
 lint-fix:
 	uv run ruff check . --fix
+
 build:
 	./build.sh
 

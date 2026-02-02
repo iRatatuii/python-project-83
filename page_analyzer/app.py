@@ -20,6 +20,7 @@ app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 if not app.config["SECRET_KEY"]:
     raise RuntimeError("SECRET_KEY не установлен")
 
+
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL)
 
@@ -183,27 +184,17 @@ def urls_post():
 
 
 def analyze_url(url):
-
     try:
-        resp = requests.get(url)
+        resp = requests.get(url, timeout=5)
         resp.raise_for_status()
 
-        data = resp.text
-        soup = BeautifulSoup(data, "html.parser")
-        description = ''
-        title = ''
-        h1 = ''
-        h1_tag = soup.h1
-        if h1_tag:
-            h1 = h1_tag.string
+        soup = BeautifulSoup(resp.text, "html.parser")
 
-        title_tag = soup.title
-        if title_tag:
-            title = title_tag.string
+        h1 = soup.h1.string if soup.h1 else ""
+        title = soup.title.string if soup.title else ""
 
         description_tag = soup.find("meta", attrs={"name": "description"})
-        if description_tag:
-            description = description_tag['content']
+        description = description_tag["content"] if description_tag else ""
 
         return {
             "status_code": resp.status_code,
@@ -212,8 +203,8 @@ def analyze_url(url):
             "description": description,
         }
 
-    except Exception:
-        flash("Произошла ошибка при проверке", 'danger')
+    except requests.RequestException:
+        return None
 
 
 @app.post("/urls/<int:id>/checks")
@@ -225,21 +216,30 @@ def check_url(id):
                 url = cur.fetchone()
                 if url is None:
                     abort(404)
-                    
+
                 data = analyze_url(url[0])
-                status_code = data["status_code"]
-                h1 = data["h1"]
-                title = data["title"]
-                description = data["description"]
+
+                if data is None:
+                    flash("Произошла ошибка при проверке", "danger")
+                    return redirect(url_for("show_url", id=id))
 
                 cur.execute(
                     """
-                    INSERT INTO url_checks (url_id, status_code, h1, title, description) 
-                    VALUES (%s, %s, %s, %s, %s)""",
-                    (id, status_code, h1, title, description),
+                    INSERT INTO url_checks (url_id, status_code, h1, title, description)
+                    VALUES (%s, %s, %s, %s, %s)
+                    """,
+                    (
+                        id,
+                        data["status_code"],
+                        data["h1"],
+                        data["title"],
+                        data["description"],
+                    ),
                 )
-                flash("Страница успешно проверена", 'success')
+
+                flash("Страница успешно проверена", "success")
                 return redirect(url_for("show_url", id=id))
+
     except psycopg2.Error as e:
         flash(f"Ошибка базы данных: {e}", "danger")
         abort(500)
