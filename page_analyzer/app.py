@@ -18,6 +18,8 @@ if not DATABASE_URL:
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 
+if not app.config["SECRET_KEY"]:
+    raise RuntimeError("SECRET_KEY не установлен")
 
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL)
@@ -39,9 +41,6 @@ def init_database():
 
     except psycopg2.Error as e:
         print(f"Ошибка подключения к базе данных: {e}")
-
-
-init_database()
 
 
 @app.route("/")
@@ -72,7 +71,7 @@ def urls_get():
                         LEFT JOIN url_checks 
                         ON urls.id = url_checks.url_id
                         GROUP BY urls.id, urls.name, urls.created_at
-                        ORDER BY id DESC
+                        ORDER BY urls.id DESC
                     """
                 )
                 urls = []
@@ -92,7 +91,7 @@ def urls_get():
         return render_template("urls.html", urls=[])
 
 
-@app.get("/urls/<id>")
+@app.get("/urls/<int:id>")
 def show_url(id):
     try:
         with get_db_connection() as conn:
@@ -171,8 +170,6 @@ def urls_post():
                     (url,),
                 )
                 new_id = cur.fetchone()[0]
-                conn.commit()
-
 
                 flash("Страница успешно добавлена", "success")
                 return redirect(url_for("show_url", id=new_id))
@@ -193,7 +190,7 @@ def analyze_url(url):
         resp.raise_for_status()
 
         data = resp.text
-        soup = BeautifulSoup(data)
+        soup = BeautifulSoup(data, "html.parser")
         description = ''
         title = ''
         h1 = ''
@@ -216,17 +213,20 @@ def analyze_url(url):
             "description": description,
         }
 
-    except exception:
+    except Exception:
         flash("Произошла ошибка при проверке", 'danger')
 
 
-@app.post("/urls/<id>/checks")
+@app.post("/urls/<int:id>/checks")
 def check_url(id):
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT name FROM urls WHERE id = %s", (id,))
                 url = cur.fetchone()
+                if url is None:
+                    abort(404)
+                    
                 data = analyze_url(url[0])
                 status_code = data["status_code"]
                 h1 = data["h1"]
@@ -239,7 +239,7 @@ def check_url(id):
                     VALUES (%s, %s, %s, %s, %s)""",
                     (id, status_code, h1, title, description),
                 )
-                
+                flash("Страница успешно проверена", 'success')
                 return redirect(url_for("show_url", id=id))
     except psycopg2.Error as e:
         flash(f"Ошибка базы данных: {e}", "danger")
@@ -257,4 +257,5 @@ def internal_error(error):
 
 
 if __name__ == "__main__":
+    init_database()
     app.run(debug=os.getenv("FLASK_ENV") == "development")
