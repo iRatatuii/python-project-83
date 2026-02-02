@@ -1,7 +1,9 @@
 import os
+from logging import exception
 from urllib.parse import urlparse
 
 import psycopg2
+import requests
 import validators
 from dotenv import load_dotenv
 from flask import Flask, abort, flash, redirect, render_template, request, url_for
@@ -62,7 +64,7 @@ def urls_get():
                             SELECT status_code 
                             FROM url_checks
                             WHERE url_id = urls.id
-                            ORDER BY created_at DESC
+                            ORDER BY id DESC
                             LIMIT 1
                         ) as last_status_code
                         FROM urls 
@@ -83,7 +85,6 @@ def urls_get():
                             "last_check_status": row[4],
                         }
                     )
-                    print(urls)
                 return render_template("urls.html", urls=urls)
     except psycopg2.Error as e:
         flash(f"Ошибка базы данных: {e}", "danger")
@@ -183,23 +184,42 @@ def urls_post():
         return render_template("index.html")
 
 
+def analyze_url(url):
+
+    try:
+        resp = requests.get(url)
+        resp.raise_for_status()
+        
+        return {
+            "status_code": resp.status_code,
+            'h1':'',
+            'title': '',
+            'description': ''
+            }
+        
+    except exception as e:
+        print(f"HTTP error occurred: {e}")
+
+
 @app.post("/urls/<id>/checks")
 def check_url(id):
-
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
-                # url = cur.execute("SELECT name FROM urls WHERE id = %s", (id,))
-                # data = analyze_url(url)
-                cur.execute("""INSERT INTO url_checks (url_id) VALUES (%s)""", (id,))
+                cur.execute("SELECT name FROM urls WHERE id = %s", (id,))
+                url = cur.fetchone()
+                data = analyze_url(url[0])
+                status_code = data["status_code"]
+                cur.execute(
+                    """
+                    INSERT INTO url_checks (url_id, status_code) 
+                    VALUES (%s, %s)""",
+                    (id, status_code),
+                )
                 return redirect(url_for("show_url", id=id))
     except psycopg2.Error as e:
         flash(f"Ошибка базы данных: {e}", "danger")
         abort(500)
-
-
-def analyze_url(url):
-    pass
 
 
 @app.errorhandler(404)
