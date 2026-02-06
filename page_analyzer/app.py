@@ -1,3 +1,4 @@
+import psycopg2
 from flask import (
     Flask,
     abort,
@@ -17,8 +18,6 @@ app.config["SECRET_KEY"] = SECRET_KEY  # NOSONAR
 
 if not app.config["SECRET_KEY"]:  # NOSONAR
     raise RuntimeError("SECRET_KEY не установлен")
-
-
 
 
 @app.route("/")
