@@ -1,4 +1,3 @@
-import psycopg2
 from flask import (
     Flask,
     abort,
@@ -9,7 +8,8 @@ from flask import (
     url_for,
 )
 
-from .config import DATABASE_URL, FLASK_ENV, SECRET_KEY
+from .config import FLASK_ENV, SECRET_KEY
+from .database import get_db_connection, init_database
 from .url_normalizer import analyze_url, prepare_url
 
 app = Flask(__name__)
@@ -19,26 +19,6 @@ if not app.config["SECRET_KEY"]:  # NOSONAR
     raise RuntimeError("SECRET_KEY не установлен")
 
 
-def get_db_connection():
-    return psycopg2.connect(DATABASE_URL)
-
-
-def init_database():
-    try:
-        with open("database.sql") as f:
-            sql_commands = f.read()
-        with get_db_connection() as conn:
-
-            conn.autocommit = True
-            with conn.cursor() as cur:
-                cur.execute(sql_commands)
-                print("База данных успешно инициализирована")
-
-    except FileNotFoundError:
-        print("Файл database.sql не найден, пропускаем инициализацию")
-
-    except psycopg2.Error as e:
-        print(f"Ошибка подключения к базе данных: {e}")
 
 
 @app.route("/")
