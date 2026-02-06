@@ -1,7 +1,4 @@
-import os
-
 import psycopg2
-from dotenv import load_dotenv
 from flask import (
     Flask,
     abort,
@@ -12,16 +9,11 @@ from flask import (
     url_for,
 )
 
+from .config import DATABASE_URL, SECRET_KEY
 from .url_normalizer import analyze_url, prepare_url
 
-load_dotenv()
-
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    print("DATABASE_URL не установлена")
-
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")  # NOSONAR
+app.config["SECRET_KEY"] = SECRET_KEY  # NOSONAR
 
 if not app.config["SECRET_KEY"]:  # NOSONAR
     raise RuntimeError("SECRET_KEY не установлен")
