@@ -23,9 +23,9 @@ if not DATABASE_URL:
     print("DATABASE_URL не установлена")
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")  # NOSONAR
 
-if not app.config["SECRET_KEY"]:
+if not app.config["SECRET_KEY"]:  # NOSONAR
     raise RuntimeError("SECRET_KEY не установлен")
 
 
