@@ -6,3 +6,4 @@ dist/
 .coverage
 .pytest_cache/
 .env
+page_analyzer/__pycache__
