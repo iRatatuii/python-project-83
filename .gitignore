@@ -1,9 +1,8 @@
 *.egg-info
-__pycache__
+__pycache__/
 dist/
 *.pyc
 .venv/
 .coverage
 .pytest_cache/
 .env
-page_analyzer/__pycache__
