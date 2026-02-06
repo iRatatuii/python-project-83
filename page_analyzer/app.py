@@ -9,7 +9,7 @@ from flask import (
     url_for,
 )
 
-from .config import DATABASE_URL, SECRET_KEY
+from .config import DATABASE_URL, FLASK_ENV, SECRET_KEY
 from .url_normalizer import analyze_url, prepare_url
 
 app = Flask(__name__)
@@ -223,4 +223,4 @@ def internal_error(error):
 
 if __name__ == "__main__":
     init_database()
-    app.run(debug=os.getenv("FLASK_ENV") == "development")
+    app.run(debug=FLASK_ENV == "development")
