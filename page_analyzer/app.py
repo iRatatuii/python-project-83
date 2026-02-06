@@ -1,8 +1,6 @@
 import os
-from urllib.parse import urlparse
 
 import psycopg2
-import validators
 from dotenv import load_dotenv
 from flask import (
     Flask,
@@ -14,7 +12,7 @@ from flask import (
     url_for,
 )
 
-from .url_normalizer import analyze_url
+from .url_normalizer import analyze_url, prepare_url
 
 load_dotenv()
 
@@ -147,20 +145,11 @@ def show_url(id):
 
 @app.post("/urls")
 def urls_post():
-    data = request.form.get("url", "").strip()
-    if not data:
-        flash("URL не может быть пустым", "danger")
-        return render_template("index.html"), 422
+    data = request.form.get("url", "")
+    url, error = prepare_url(data)
 
-    normalize_url = urlparse(data)
-    url = f"{normalize_url.scheme}://{normalize_url.hostname}"
-
-    if len(url) > 255:
-        flash("URL не может быть длиннее 255 символов", "danger")
-        return render_template("index.html"), 422
-
-    if not validators.url(url):
-        flash("Некорректный URL", "danger")
+    if error:
+        flash(error, "danger")
         return render_template("index.html"), 422
 
     try:
