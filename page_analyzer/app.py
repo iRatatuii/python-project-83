@@ -2,9 +2,7 @@ import os
 from urllib.parse import urlparse
 
 import psycopg2
-import requests
 import validators
-from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from flask import (
     Flask,
@@ -15,6 +13,8 @@ from flask import (
     request,
     url_for,
 )
+
+from .url_normalizer import analyze_url
 
 load_dotenv()
 
@@ -189,30 +189,6 @@ def urls_post():
     except psycopg2.Error as e:
         flash(f"Ошибка базы данных: {e}", "danger")
         return render_template("index.html")
-
-
-def analyze_url(url):
-    try:
-        resp = requests.get(url, timeout=5)
-        resp.raise_for_status()
-
-        soup = BeautifulSoup(resp.text, "html.parser")
-
-        h1 = soup.h1.string if soup.h1 else ""
-        title = soup.title.string if soup.title else ""
-
-        description_tag = soup.find("meta", attrs={"name": "description"})
-        description = description_tag["content"] if description_tag else ""
-
-        return {
-            "status_code": resp.status_code,
-            "h1": h1,
-            "title": title,
-            "description": description,
-        }
-
-    except requests.RequestException:
-        return None
 
 
 @app.post("/urls/<int:id>/checks")
